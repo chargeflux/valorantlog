@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import re
-from typing import Optional, Type, TypeVar
+from typing import Callable, Optional, Type, TypeVar
 
 import numpy as np
 
@@ -9,21 +9,21 @@ from detector import Detection, DetectionLabel, Detector
 from ocr import OCR
 
 
-ObservationLike = TypeVar("ObservationLike", bound="Observation")
-
 ROUND_PATTERN = re.compile(r"^ROUND\s*(\d+)$")
+ObservationLike = TypeVar("ObservationLike", bound="Observation")
 
 
 @dataclass
 class Observation:
     text: str
     detection: Optional[Detection]
+    image: np.ndarray | None
 
     @classmethod
     def from_observation(
         cls: Type[ObservationLike], obs: "Observation"
     ) -> ObservationLike:
-        return cls(text=obs.text, detection=obs.detection)
+        return cls(text=obs.text, detection=obs.detection, image=obs.image)
 
     def is_valid(self) -> bool:
         return self.text != "" and self.detection is not None
@@ -86,19 +86,17 @@ class GameState:
 
     @classmethod
     def from_ocr_data(cls, data: dict[DetectionLabel, Observation]) -> "GameState":
+        def extract_data(label: DetectionLabel):
+            return data.get(
+                label,
+                Observation("", None, None),
+            )
+
         return cls(
-            round=Round.from_observation(
-                data.get(DetectionLabel.ROUND, Observation("", None))
-            ),
-            timer=Timer.from_observation(
-                data.get(DetectionLabel.TIMER, Observation("", None))
-            ),
-            l_team=Team.from_observation(
-                data.get(DetectionLabel.L_TEAM, Observation("", None))
-            ),
-            r_team=Team.from_observation(
-                data.get(DetectionLabel.R_TEAM, Observation("", None))
-            ),
+            round=Round.from_observation(extract_data(DetectionLabel.ROUND)),
+            timer=Timer.from_observation(extract_data(DetectionLabel.TIMER)),
+            l_team=Team.from_observation(extract_data(DetectionLabel.L_TEAM)),
+            r_team=Team.from_observation(extract_data(DetectionLabel.R_TEAM)),
         )
 
 
@@ -107,11 +105,25 @@ class GameStateExtractor:
         self.ocr = ocr
         self.detector = detector
 
+    def _get_ocr_strategy(self, label: DetectionLabel) -> Callable:
+        match label:
+            case DetectionLabel.ROUND:
+                return self.ocr.single_line
+            case DetectionLabel.L_TEAM | DetectionLabel.R_TEAM:
+                return self.ocr.single_word
+            case _:
+                return self.ocr.auto
+
     def extract(self, img: np.ndarray) -> GameState:
         detections = self.detector.detect(img)
         data: dict[DetectionLabel, Observation] = {}
+        # CHW -> HWC
+        img = np.moveaxis(img, 0, -1)
         for detection in detections:
-            x_min, y_min, x_max, y_max = detection.xyxy
-            text = self.ocr.single_line(img[y_min:y_max, x_min:x_max])
-            data[detection.class_label] = Observation(text, detection)
+            x_min, y_min, x_max, y_max = detection.xyxy.astype(int)
+            cropped_image = img[y_min:y_max, x_min:x_max]
+            text = self._get_ocr_strategy(detection.label_name)(cropped_image)
+            data[detection.label_name] = Observation(
+                text, detection, cropped_image.copy()
+            )
         return GameState.from_ocr_data(data)

@@ -10,7 +10,7 @@ class MockDetector:
     def __init__(self, detections: List[Detection]):
         self.detections = detections
 
-    def detect(self, image: np.ndarray) -> List[Detection]:
+    def detect(self, img: np.ndarray) -> List[Detection]:
         return self.detections
 
 
@@ -19,17 +19,31 @@ class MockOCR:
         self.text_results = iter(text_results)
         self.cnt = len(text_results)
 
-    def single_line(self, image: np.ndarray) -> str:
+    def _image_to_text(self, image: np.ndarray) -> str:
         try:
             return next(self.text_results)
         except StopIteration:
             raise ValueError(f"MockOCR called more than {self.cnt} times")
 
+    def auto(self, image: np.ndarray) -> str:
+        return self._image_to_text(image)
+
+    def single_word(self, image: np.ndarray) -> str:
+        return self._image_to_text(image)
+
+    def single_line(self, image: np.ndarray) -> str:
+        return self._image_to_text(image)
+
 
 def create_mock_detection(
     label: DetectionLabel, xyxy: Optional[Xyxy] = None
 ) -> Detection:
-    return Detection(xyxy if xyxy else (0, 0, 0, 0), 1.0, label.to_class_id(), label)
+    return Detection(
+        (xyxy if xyxy is not None else np.zeros((4,), dtype=np.float32)),
+        1.0,
+        label.to_label_id(),
+        label,
+    )
 
 
 @pytest.mark.parametrize(
