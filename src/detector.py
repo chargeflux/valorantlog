@@ -15,23 +15,28 @@ Xyxy = Annotated[npt.NDArray[np.float32], Literal[4]]
 
 
 class DetectionLabel(Enum):
-    ROUND = "round"
     TIMER = "timer"
     L_TEAM = "l_team"
     R_TEAM = "r_team"
+    ROUND = "round"
 
     def to_label_id(self) -> int:
-        return LABEL_TO_ID[self]
+        return DETECTION_LABEL_TO_ID[self]
+    
+    @classmethod
+    def from_id(cls, label_id: int) -> "DetectionLabel":
+        return ID_TO_DETECTION_LABEL[label_id]
+    
+    @classmethod
+    def verify(cls, actual_labels: List[str]):
+        if len(actual_labels) != len(cls):
+            raise ValueError(f"Number of actual labels {len(actual_labels)} do not match length of {cls.__name__} ({len(cls)})")
+        for i, label in enumerate(cls):
+            if label.value != actual_labels[i]:
+                raise ValueError(f"Expected {label.value} at {i} but correct label as provided is {actual_labels[i]}")
 
-
-LABEL_TO_ID = {
-    DetectionLabel.TIMER: 0,
-    DetectionLabel.L_TEAM: 1,
-    DetectionLabel.R_TEAM: 2,
-    DetectionLabel.ROUND: 3,
-}
-
-ID_TO_LABEL = {v: k for k, v in LABEL_TO_ID.items()}
+DETECTION_LABEL_TO_ID = {label: i for i, label in enumerate(DetectionLabel)}
+ID_TO_DETECTION_LABEL = {i: label for i, label in enumerate(DetectionLabel)}
 
 
 @dataclass
@@ -43,7 +48,7 @@ class Detection:
 
     @classmethod
     def from_prediction(cls, pred: Prediction) -> "Detection":
-        return cls(pred.boxes, pred.confidence, pred.label_id, ID_TO_LABEL[pred.label_id])
+        return cls(pred.boxes, pred.confidence, pred.label_id, ID_TO_DETECTION_LABEL[pred.label_id])
 
 
 class Detector(Protocol):
