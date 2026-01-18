@@ -10,6 +10,7 @@ dependencies = [
     "opencv-python>=4.11.0.86",
     "tesserocr>=2.9.2",
     "torch>=2.9.1",
+    "torchcodec>=0.9.1",
     "torchvision>=0.24.1",
 ]
 
@@ -22,6 +23,11 @@ torchvision = [
     { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
     { index = "pytorch-cuda", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
+torchcodec = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+    { index = "pytorch-cuda", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
 [[tool.uv.index]]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
