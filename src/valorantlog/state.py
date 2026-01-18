@@ -4,9 +4,10 @@ import re
 from typing import Callable, Optional, Type, TypeVar
 
 import numpy as np
+import torch
 
-from detector import Detection, DetectionLabel, Detector
-from ocr import OCR
+from valorantlog.detector import Detection, DetectionLabel, Detector
+from valorantlog.ocr import OCR
 
 
 ROUND_PATTERN = re.compile(r"^ROUND\s*(\d+)$")
@@ -114,9 +115,11 @@ class GameStateExtractor:
             case _:
                 return self.ocr.auto
 
-    def extract(self, img: np.ndarray) -> GameState:
+    def extract(self, img: np.ndarray | torch.Tensor) -> GameState:
         detections = self.detector.detect(img)
         data: dict[DetectionLabel, Observation] = {}
+        if isinstance(img, torch.Tensor):
+            img = img.cpu().numpy()
         # CHW -> HWC
         img = np.moveaxis(img, 0, -1)
         for detection in detections:

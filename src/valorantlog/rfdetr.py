@@ -2,7 +2,7 @@ from typing import Iterable, Sequence
 import torch
 from torchvision.transforms import v2
 
-from inference import Prediction
+from valorantlog.inference import Prediction
 
 
 class RfdetrBase:

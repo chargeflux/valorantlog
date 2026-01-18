@@ -1,9 +1,8 @@
 from typing import List, Optional
 import numpy as np
 import pytest
-from sympy import false
-from detector import Detection, DetectionLabel, Xyxy
-from state import GameStateExtractor
+from valorantlog.detector import Detection, DetectionLabel, Xyxy
+from valorantlog.state import GameStateExtractor
 
 
 class MockDetector:
@@ -74,7 +73,7 @@ def test_extractor_extract_round_invalid(input: str):
     p = GameStateExtractor(ocr, detector)
     state = p.extract(np.empty((0, 0)))
     assert state.round.value == 0
-    assert state.round.is_valid() == false
+    assert not state.round.is_valid()
 
 
 def test_extractor_extract_team_invalid():
@@ -84,10 +83,10 @@ def test_extractor_extract_team_invalid():
     p = GameStateExtractor(ocr, detector)
     state = p.extract(np.empty((0, 0)))
     assert state.l_team.value == ""
-    assert state.l_team.is_valid() == false
+    assert not state.l_team.is_valid()
 
     assert state.r_team.value == ""
-    assert state.r_team.is_valid() == false
+    assert not state.r_team.is_valid()
 
 
 def test_extractor_extract_timer_invalid():
@@ -97,4 +96,4 @@ def test_extractor_extract_timer_invalid():
     p = GameStateExtractor(ocr, detector)
     state = p.extract(np.empty((0, 0)))
     assert state.timer.value == -1
-    assert state.timer.is_valid() == false
+    assert not state.timer.is_valid()

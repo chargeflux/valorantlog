@@ -2,7 +2,7 @@ from typing import Tuple
 import cv2
 import numpy as np
 import pytest
-from ocr import OCR, TesseractOCR
+from valorantlog.ocr import OCR, TesseractOCR
 
 
 def write_text(img: np.ndarray, loc: Tuple[int, int], text: str) -> np.ndarray:

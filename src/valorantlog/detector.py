@@ -7,8 +7,8 @@ import torch
 
 import numpy.typing as npt
 
-from inference import InferenceProvider, Prediction
-from rfdetr import RfdetrBase
+from valorantlog.inference import InferenceProvider, Prediction
+from valorantlog.rfdetr import RfdetrBase
 
 
 Xyxy = Annotated[npt.NDArray[np.float32], Literal[4]]
@@ -52,7 +52,7 @@ class Detection:
 
 
 class Detector(Protocol):
-    def detect(self, img: np.ndarray) -> List[Detection]: ...
+    def detect(self, img: np.ndarray | torch.Tensor) -> List[Detection]: ...
 
 
 class RfdetrONNX(RfdetrBase):
@@ -71,8 +71,10 @@ class RfdetrONNX(RfdetrBase):
         self.input_name = input_info.name
         self.output_names = [output.name for output in self.session.get_outputs()]
 
-    def predict(self, img: np.ndarray) -> Iterable[Prediction]:
-        processed_img = self.preprocess(torch.from_numpy(img))
+    def predict(self, img: np.ndarray | torch.Tensor) -> Iterable[Prediction]:
+        if isinstance(img, np.ndarray):
+            img = torch.from_numpy(img)
+        processed_img = self.preprocess(img)
         inputs = {self.input_name: processed_img.unsqueeze(0).numpy()}
         outputs = self.session.run(self.output_names, inputs)
         boxes, logits = outputs
@@ -91,7 +93,7 @@ class Rfdetr:
         if model_path.endswith(".onnx"):
             self.provider: InferenceProvider = RfdetrONNX(model_path)
 
-    def detect(self, img: np.ndarray) -> List[Detection]:
+    def detect(self, img: np.ndarray | torch.Tensor) -> List[Detection]:
         detections = []
         for pred in self.provider.predict(img):
             detections.append(Detection.from_prediction(pred))

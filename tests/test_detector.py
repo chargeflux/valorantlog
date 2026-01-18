@@ -1,8 +1,8 @@
 from typing import List
 import numpy as np
 import pytest
-from detector import Detection, DetectionLabel
-from inference import Prediction
+from valorantlog.detector import Detection, DetectionLabel
+from valorantlog.inference import Prediction
 
 @pytest.mark.parametrize(["actual_labels", "should_raise"], [([label.value for label in DetectionLabel], False), ([DetectionLabel.R_TEAM], True)])
 def test_detection_label_verify(actual_labels: List[str], should_raise: bool):
