@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
 import re
-from typing import Callable, Optional, Tuple, Type, TypeVar
+from typing import Callable, Optional, Type, TypeVar
 
 import numpy as np
 import torch

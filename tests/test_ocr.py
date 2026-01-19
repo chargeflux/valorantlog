@@ -15,3 +15,13 @@ def test_ocr_single_line(text: str):
     img = 255 * np.ones((500, 500), dtype=np.uint8)
     annotated_img = write_text(img, (250, 250), text)
     assert ocr.single_line(annotated_img).strip() == text
+
+def test_ocr_multiple():
+    ocr: OCR = TesseractOCR()
+    img = 255 * np.ones((500, 500), dtype=np.uint8)
+    annotated_img = write_text(img, (250, 250), "Apple")
+    assert ocr.single_line(annotated_img).strip() == "Apple"
+
+    img = 255 * np.ones((500, 500), dtype=np.uint8)
+    annotated_img = write_text(img, (250, 250), "Banana")
+    assert ocr.single_line(annotated_img).strip() == "Banana"

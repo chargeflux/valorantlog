@@ -74,7 +74,7 @@ class RfdetrONNX(RfdetrBase):
     def predict(self, img: np.ndarray | torch.Tensor) -> Iterable[Prediction]:
         if isinstance(img, np.ndarray):
             img = torch.from_numpy(img)
-        processed_img = self.preprocess(img)
+        processed_img = self.preprocess(img).cpu()
         inputs = {self.input_name: processed_img.unsqueeze(0).numpy()}
         outputs = self.session.run(self.output_names, inputs)
         boxes, logits = outputs
