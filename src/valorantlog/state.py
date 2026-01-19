@@ -1,14 +1,16 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+import logging
 import re
-from typing import Callable, Optional, Type, TypeVar
+from typing import Callable, Optional, Tuple, Type, TypeVar
 
 import numpy as np
 import torch
 
-from valorantlog.detector import Detection, DetectionLabel, Detector
+from valorantlog.detector import Detection, DetectionLabel, Detector, Xyxy
 from valorantlog.ocr import OCR
 
+logger = logging.getLogger(__name__)
 
 ROUND_PATTERN = re.compile(r"^ROUND\s*(\d+)$")
 ObservationLike = TypeVar("ObservationLike", bound="Observation")
@@ -114,6 +116,13 @@ class GameStateExtractor:
                 return self.ocr.single_word
             case _:
                 return self.ocr.auto
+    
+    def _clip_xyxy(self, img_h: int, img_w: int, xyxy: Xyxy) -> bool:
+        if not np.any((xyxy < 0) | (xyxy > [img_w, img_h, img_w, img_h]), axis=0):
+            return False
+        xyxy[[0, 2]] = np.clip(xyxy[[0, 2]], 0, img_w)
+        xyxy[[1, 3]] = np.clip(xyxy[[1, 3]], 0, img_h)
+        return True
 
     def extract(self, img: np.ndarray | torch.Tensor) -> GameState:
         detections = self.detector.detect(img)
@@ -123,9 +132,16 @@ class GameStateExtractor:
         # CHW -> HWC
         img = np.moveaxis(img, 0, -1)
         for detection in detections:
-            x_min, y_min, x_max, y_max = detection.xyxy.astype(int)
+            xyxy_int = detection.xyxy.astype(int)
+            logger.debug(f"Detected {detection.label_name} in xyxy region {xyxy_int}")
+            clipped = self._clip_xyxy(img.shape[0], img.shape[1], xyxy_int)
+            if clipped:
+                logger.debug(f"Clipped boundaries {xyxy_int}")
+            x_min, y_min, x_max, y_max = xyxy_int
             cropped_image = img[y_min:y_max, x_min:x_max]
-            text = self._get_ocr_strategy(detection.label_name)(cropped_image)
+            strategy = self._get_ocr_strategy(detection.label_name)
+            logger.debug(f"Using OCR strategy \'{strategy.__name__}\' for label {detection.label_name}")
+            text = strategy(cropped_image)
             data[detection.label_name] = Observation(
                 text, detection, cropped_image.copy()
             )

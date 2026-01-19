@@ -1,8 +1,10 @@
+import logging
 from PIL import Image
 from typing import Protocol
 import numpy as np
 import tesserocr
 
+logger = logging.getLogger(__name__)
 
 class OCR(Protocol):
     def auto(self, image: np.ndarray) -> str: ...
@@ -15,6 +17,7 @@ class TesseractOCR:
         pass
 
     def _to_text(self, image: np.ndarray, psm: tesserocr.PSM) -> str:
+        logger.debug(f"Running tesseract with psm {psm}")
         return tesserocr.image_to_text(Image.fromarray(image), psm=psm).strip()
 
     def auto(self, image: np.ndarray) -> str:
