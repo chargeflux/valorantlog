@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+import logging
 from typing import Annotated, Iterable, List, Literal, Protocol
 
 import numpy as np
@@ -9,6 +10,8 @@ import numpy.typing as npt
 
 from valorantlog.inference import InferenceProvider, Prediction
 from valorantlog.rfdetr import RfdetrBase
+
+logger = logging.getLogger(__name__)
 
 
 Xyxy = Annotated[npt.NDArray[np.float32], Literal[4]]
@@ -65,6 +68,7 @@ class RfdetrONNX(RfdetrBase):
         import onnxruntime
 
         self.session = onnxruntime.InferenceSession(model_path, providers=self.providers)
+        logger.debug(f"Using {self.session.get_providers()[0]} with ONNX Runtime")
         input_info = self.session.get_inputs()[0]
         # B X C X H X W -> H X W
         self.input_h, self.input_w = input_info.shape[2:]

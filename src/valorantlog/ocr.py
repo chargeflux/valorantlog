@@ -13,14 +13,16 @@ class OCR(Protocol):
 
 class TesseractOCR:
     def __init__(self):
-        self.api = tesserocr.PyTessBaseAPI()
+        self.api = tesserocr.PyTessBaseAPI(variables={
+            "tessedit_do_invert": "0"
+        })
 
     def _set_img_bytes(self, image: np.ndarray):
         h, w = image.shape[:2]
         bpp=1 if image.ndim == 2 else image.shape[2]
         bpl=bpp*w
         self.api.SetImageBytes(
-            imagedata=np.ascontiguousarray(image.astype(np.uint8)).tobytes(), # pyright: ignore[reportArgumentType]
+            imagedata=np.ascontiguousarray(~image.astype(np.uint8)).tobytes(), # pyright: ignore[reportArgumentType]
             height=h,
             width=w,
             bytes_per_pixel=bpp,
