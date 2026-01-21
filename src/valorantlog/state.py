@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from datetime import datetime, timedelta
 import logging
+import os
 import re
 from typing import Optional, Type, TypeVar
 
@@ -147,6 +148,29 @@ class GameState:
             ),
             spike=Spike.from_observation(extract_data(DetectionLabel.SPIKE)),
         )
+
+    def __str__(self) -> str:
+        res = []
+        for field in fields(self):
+            obs = getattr(self, field.name)
+
+            if hasattr(obs, "value"):
+                res.append(f"{field.name} {obs.value}")
+            else:
+                res.append(f"{field.name} {obs.is_valid()}")
+
+        return "\t".join(res)
+
+    def save_img(self, dir: str):
+        os.makedirs(dir, exist_ok=True)
+        for field in fields(self):
+            obs = getattr(self, field.name)
+
+            if hasattr(obs, "image") and obs.image is not None:
+                img = Image.fromarray(obs.image)
+                filename = f"{type(obs).__name__}_{obs.detection.label_name.name}_{obs.detection.label_id}.png"
+                save_path = Path(dir) / filename
+                img.save(save_path)
 
 
 class GameStateExtractor:
