@@ -2,7 +2,7 @@ from typing import Tuple
 import cv2
 import numpy as np
 import pytest
-from valorantlog.ocr import OCR, TesseractOCR
+from valorantlog.ocr import OCR, OCRHint, TesseractOCR
 
 
 def write_text(img: np.ndarray, loc: Tuple[int, int], text: str) -> np.ndarray:
@@ -14,14 +14,15 @@ def test_ocr_single_line(text: str):
     ocr: OCR = TesseractOCR()
     img = 255 * np.ones((500, 500), dtype=np.uint8)
     annotated_img = write_text(img, (250, 250), text)
-    assert ocr.single_line(annotated_img).strip() == text
+    assert ocr.read(annotated_img, OCRHint.SINGLE_LINE).strip() == text
+
 
 def test_ocr_multiple():
     ocr: OCR = TesseractOCR()
     img = 255 * np.ones((500, 500), dtype=np.uint8)
     annotated_img = write_text(img, (250, 250), "Apple")
-    assert ocr.single_line(annotated_img).strip() == "Apple"
+    assert ocr.read(annotated_img, OCRHint.SINGLE_LINE).strip() == "Apple"
 
     img = 255 * np.ones((500, 500), dtype=np.uint8)
     annotated_img = write_text(img, (250, 250), "Banana")
-    assert ocr.single_line(annotated_img).strip() == "Banana"
+    assert ocr.read(annotated_img, OCRHint.SINGLE_LINE).strip() == "Banana"

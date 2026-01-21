@@ -2,13 +2,13 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
 import re
-from typing import Callable, Optional, Type, TypeVar
+from typing import Optional, Type, TypeVar
 
 import numpy as np
 import torch
 
 from valorantlog.detector import Detection, DetectionLabel, Detector, Xyxy
-from valorantlog.ocr import OCR
+from valorantlog.ocr import OCR, OCRHint
 
 logger = logging.getLogger(__name__)
 
@@ -108,15 +108,15 @@ class GameStateExtractor:
         self.ocr = ocr
         self.detector = detector
 
-    def _get_ocr_strategy(self, label: DetectionLabel) -> Callable:
+    def _get_ocr_hint(self, label: DetectionLabel) -> OCRHint:
         match label:
             case DetectionLabel.ROUND:
-                return self.ocr.single_line
+                return OCRHint.INVERT | OCRHint.SINGLE_LINE
             case DetectionLabel.L_TEAM | DetectionLabel.R_TEAM:
-                return self.ocr.single_word
+                return OCRHint.INVERT | OCRHint.SINGLE_WORD
             case _:
-                return self.ocr.auto
-    
+                return OCRHint.INVERT
+
     def _clip_xyxy(self, img_h: int, img_w: int, xyxy: Xyxy) -> bool:
         if not np.any((xyxy < 0) | (xyxy > [img_w, img_h, img_w, img_h]), axis=0):
             return False
@@ -130,7 +130,7 @@ class GameStateExtractor:
         if isinstance(img, torch.Tensor):
             img = img.cpu().numpy()
         # CHW -> HWC
-        img = np.moveaxis(img, 0, -1)
+        img = np.moveaxis(img, 0, -1).astype(np.uint8)
         for detection in detections:
             xyxy_int = detection.xyxy.astype(int)
             logger.debug(f"Detected {detection.label_name} in xyxy region {xyxy_int}")
@@ -139,9 +139,11 @@ class GameStateExtractor:
                 logger.debug(f"Clipped boundaries {xyxy_int}")
             x_min, y_min, x_max, y_max = xyxy_int
             cropped_image = img[y_min:y_max, x_min:x_max]
-            strategy = self._get_ocr_strategy(detection.label_name)
-            logger.debug(f"Using OCR strategy \'{strategy.__name__}\' for label {detection.label_name}")
-            text = strategy(cropped_image)
+            hint = self._get_ocr_hint(detection.label_name)
+            logger.debug(
+                f"Using OCR hints '{hint.name}' for label {detection.label_name}"
+            )
+            text = self.ocr.read(cropped_image, hint)
             data[detection.label_name] = Observation(
                 text, detection, cropped_image.copy()
             )

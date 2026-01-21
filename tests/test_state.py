@@ -1,7 +1,9 @@
 from typing import List, Optional
 import numpy as np
 import pytest
+import torch
 from valorantlog.detector import Detection, DetectionLabel, Xyxy
+from valorantlog.ocr import OCRHint
 from valorantlog.state import GameStateExtractor
 
 
@@ -9,7 +11,7 @@ class MockDetector:
     def __init__(self, detections: List[Detection]):
         self.detections = detections
 
-    def detect(self, img: np.ndarray) -> List[Detection]:
+    def detect(self, img: np.ndarray | torch.Tensor) -> List[Detection]:
         return self.detections
 
 
@@ -24,13 +26,7 @@ class MockOCR:
         except StopIteration:
             raise ValueError(f"MockOCR called more than {self.cnt} times")
 
-    def auto(self, image: np.ndarray) -> str:
-        return self._image_to_text(image)
-
-    def single_word(self, image: np.ndarray) -> str:
-        return self._image_to_text(image)
-
-    def single_line(self, image: np.ndarray) -> str:
+    def read(self, image: np.ndarray, hint: OCRHint = OCRHint.NONE) -> str:
         return self._image_to_text(image)
 
 
