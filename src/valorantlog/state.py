@@ -4,6 +4,7 @@ import logging
 import re
 from typing import Optional, Type, TypeVar
 
+from PIL import Image
 import numpy as np
 import torch
 
@@ -33,6 +34,12 @@ class Observation:
 
 
 @dataclass
+class Observed(Observation):
+    def is_valid(self) -> bool:
+        return self.detection is not None
+
+
+@dataclass
 class Round(Observation):
     @property
     def value(self) -> int:
@@ -55,10 +62,20 @@ class Timer(Observation):
     def value(self) -> float:
         return float(self.text)
 
+    def _parse_time(self, text: str) -> Optional[datetime]:
+        if not text:
+            return None
+        formats = ["%M:%S", "%S.%f"]
+        for fmt in formats:
+            try:
+                return datetime.strptime(text, fmt)
+            except ValueError:
+                continue
+        return None
+
     def __post_init__(self):
         try:
-            if self.text:
-                p_time = datetime.strptime(self.text, "%M:%S")
+            if p_time := self._parse_time(self.text):
                 self.text = str(
                     timedelta(
                         minutes=p_time.minute, seconds=p_time.second
@@ -74,6 +91,11 @@ class Timer(Observation):
 
 
 @dataclass
+class Spike(Observed):
+    pass
+
+
+@dataclass
 class Team(Observation):
     @property
     def value(self) -> str:
@@ -81,11 +103,28 @@ class Team(Observation):
 
 
 @dataclass
+class Score(Observation):
+    @property
+    def value(self) -> int:
+        return int(self.text)
+
+    def __post_init__(self):
+        if not self.text.isdigit():
+            self.text = "-1"
+
+    def is_valid(self) -> bool:
+        return super().is_valid() and self.text != "-1"
+
+
+@dataclass
 class GameState:
     round: Round
     timer: Timer
     l_team: Team
+    l_team_score: Score
     r_team: Team
+    r_team_score: Score
+    spike: Spike
 
     @classmethod
     def from_ocr_data(cls, data: dict[DetectionLabel, Observation]) -> "GameState":
@@ -100,6 +139,13 @@ class GameState:
             timer=Timer.from_observation(extract_data(DetectionLabel.TIMER)),
             l_team=Team.from_observation(extract_data(DetectionLabel.L_TEAM)),
             r_team=Team.from_observation(extract_data(DetectionLabel.R_TEAM)),
+            l_team_score=Score.from_observation(
+                extract_data(DetectionLabel.L_TEAM_SCORE)
+            ),
+            r_team_score=Score.from_observation(
+                extract_data(DetectionLabel.R_TEAM_SCORE)
+            ),
+            spike=Spike.from_observation(extract_data(DetectionLabel.SPIKE)),
         )
 
 
@@ -114,6 +160,8 @@ class GameStateExtractor:
                 return OCRHint.INVERT | OCRHint.SINGLE_LINE
             case DetectionLabel.L_TEAM | DetectionLabel.R_TEAM:
                 return OCRHint.INVERT | OCRHint.SINGLE_WORD
+            case DetectionLabel.L_TEAM_SCORE | DetectionLabel.R_TEAM_SCORE:
+                return OCRHint.INVERT | OCRHint.SINGLE_LINE
             case _:
                 return OCRHint.INVERT
 
