@@ -2,8 +2,9 @@ from dataclasses import dataclass, fields
 from datetime import datetime, timedelta
 import logging
 import os
+from pathlib import Path
 import re
-from typing import Optional, Type, TypeVar
+from typing import Optional, Protocol, Tuple, Type, TypeVar
 
 from PIL import Image
 import numpy as np
@@ -47,10 +48,14 @@ class Round(Observation):
         return int(self.text)
 
     def __post_init__(self):
+        if self.text == "":
+            self.text = "0"
+            return
         match = ROUND_PATTERN.match(self.text)
         if match:
             self.text = match.group(1)
         else:
+            logger.debug(f"Failed to parse round from {self.text}")
             self.text = "0"
 
     def is_valid(self) -> bool:
@@ -75,6 +80,9 @@ class Timer(Observation):
         return None
 
     def __post_init__(self):
+        if self.text == "":
+            self.text = "-1"
+            return
         try:
             if p_time := self._parse_time(self.text):
                 self.text = str(
@@ -83,6 +91,7 @@ class Timer(Observation):
                     ).total_seconds()
                 )
             else:
+                logger.debug(f"Failed to parse time from {self.text}")
                 self.text = "-1"
         except ValueError:
             self.text = "-1"
@@ -110,11 +119,73 @@ class Score(Observation):
         return int(self.text)
 
     def __post_init__(self):
+        if self.text == "":
+            self.text = "-1"
+            return
         if not self.text.isdigit():
+            logger.debug(f"Failed to parse score from {self.text}")
             self.text = "-1"
 
     def is_valid(self) -> bool:
         return super().is_valid() and self.text != "-1"
+
+
+class SmoothedField(Protocol):
+    def update(self, value: str) -> str: ...
+    def get(self) -> Optional[str]: ...
+
+
+@dataclass
+class ThresholdField:
+    k: int = 3
+    candidate: Optional[str] = None
+    candidate_count: int = 0
+    value: Optional[str] = None
+
+    def update(self, value: str) -> str:
+        if self.candidate != value:
+            self.candidate = value
+            self.candidate_count = 1
+        else:
+            self.candidate_count += 1
+
+        if self.candidate_count >= self.k:
+            self.value = self.candidate
+
+        return self.value if self.value is not None else value
+
+    def get(self) -> Optional[str]:
+        return self.value
+
+
+@dataclass
+class DecayField:
+    threshold: int = 5
+    decay: int = 1
+    candidate: Optional[str] = None
+    value: Optional[str] = None
+    score: int = 0
+
+    def update(self, value: str) -> str:
+        if self.candidate is None:
+            self.candidate = value
+            self.value = value
+            self.score = 0
+            return value
+        if self.candidate == value:
+            self.score = min(self.score + 1, self.threshold)
+        else:
+            self.candidate = value
+            self.score = max(0, self.score - self.decay)
+
+        if self.score >= self.threshold:
+            self.value = self.candidate
+            self.score = 0
+
+        return self.value if self.value is not None else value
+
+    def get(self) -> Optional[str]:
+        return self.value
 
 
 @dataclass
@@ -173,6 +244,23 @@ class GameState:
                 img.save(save_path)
 
 
+class Smoother:
+    def __init__(self, smoothed_fields: dict[str, SmoothedField]):
+        self.fields = {name: field for name, field in smoothed_fields.items()}
+
+    def get(self, name: str) -> Optional[str]:
+        field = self.fields.get(name)
+        if field is None:
+            return None
+        return field.get()
+
+    def update(self, name: str, value: str) -> str:
+        field = self.fields.get(name)
+        if field is None:
+            return value
+        return field.update(value)
+
+
 class GameStateExtractor:
     def __init__(self, ocr: OCR, detector: Detector):
         self.ocr = ocr
@@ -220,3 +308,31 @@ class GameStateExtractor:
                 text, detection, cropped_image.copy()
             )
         return GameState.from_ocr_data(data)
+
+    smoothed_fields: dict[str, SmoothedField] = {
+        "round": DecayField(30, 1),
+        "l_team": DecayField(60, 1),
+        "l_team_score": DecayField(30, 1),
+        "r_team": DecayField(60, 1),
+        "r_team_score": DecayField(30, 1),
+        "timer": ThresholdField(1),
+        "spike": ThresholdField(1),
+    }
+
+    def extract_smooth(
+        self, img: np.ndarray | torch.Tensor, smoother: Optional[Smoother] = None
+    ) -> Tuple[GameState, Smoother]:
+        gs = self.extract(img)
+        if smoother is None:
+            smoother = Smoother(self.smoothed_fields)
+        for field in fields(GameState):
+            obs = getattr(gs, field.name)
+            if not obs.is_valid():
+                if value := smoother.get(field.name):
+                    obs.text = value
+                continue
+            updated = smoother.update(field.name, obs.text)
+            if obs.text != updated:
+                logger.debug(f"Updated {obs.text} to {updated} for {field.name}")
+                obs.text = updated
+        return (gs, smoother)

@@ -2,9 +2,17 @@ from typing import List, Optional
 import numpy as np
 import pytest
 import torch
-from valorantlog.detector import Detection, DetectionLabel, Xyxy
+from valorantlog.detector import (
+    Detection,
+    DetectionLabel,
+    Xyxy,
+)
 from valorantlog.ocr import OCRHint
-from valorantlog.state import GameStateExtractor
+from valorantlog.state import (
+    DecayField,
+    GameStateExtractor,
+    ThresholdField,
+)
 
 
 class MockDetector:
@@ -93,3 +101,41 @@ def test_extractor_extract_timer_invalid():
     state = p.extract(np.empty((0, 0)))
     assert state.timer.value == -1
     assert not state.timer.is_valid()
+
+
+def test_thresholdfield_locked():
+    updates = ["3", "3", "3", "4", "4", "4"]
+    expected = [None, None, "3", "3", "3", "4"]
+    fl = ThresholdField(3)
+    for i, update in enumerate(updates):
+        fl.update(update)
+        assert fl.value == expected[i]
+
+
+def test_thresholdfield_update():
+    fl = ThresholdField(2)
+    assert fl.update("3") == "3"
+    assert fl.update("3") == "3"
+
+    assert fl.update("5") == "3"
+
+
+def test_decayfield_locked():
+    updates = ["3", "4", "4", "4"]
+    expected = ["3", "3", "3", "4"]
+    fl = DecayField(2)
+    for i, update in enumerate(updates):
+        fl.update(update)
+        assert fl.value == expected[i]
+
+
+def test_decayfield_update():
+    fl = DecayField(2)
+    assert fl.update("3") == "3"
+    assert fl.update("3") == "3"
+    assert fl.update("3") == "3"
+    # locked
+    assert fl.update("5") == "3"
+    assert fl.update("5") == "3"
+    # unlocked
+    assert fl.update("5") == "5"
