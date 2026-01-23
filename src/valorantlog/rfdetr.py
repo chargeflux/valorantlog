@@ -1,3 +1,10 @@
+# This file is derived from rf-detr
+# https://github.com/roboflow/rf-detr
+#
+# Copyright (c) 2025 Roboflow.
+# Licensed under the Apache License, Version 2.0
+# https://www.apache.org/licenses/LICENSE-2.0
+
 from typing import Iterable, Sequence
 import torch
 from torchvision.transforms import v2

@@ -1,0 +1,48 @@
+This project is licensed under the MIT License.
+
+This project depends on the following components:
+
+FFmpeg
+https://www.ffmpeg.org
+Copyright 2000‑2025 the FFmpeg developers
+Licensed under the GNU Lesser General Public License version 2.1 or later and the GNU General Public License version 2 or later
+
+NumPy
+https://github.com/numpy/numpy
+Copyright (c) 2005-2025, NumPy Developers.
+Licensed under the modified BSD license
+
+ONNXRuntime
+https://github.com/microsoft/onnxruntime
+Copyright (c) Microsoft Corporation
+Licensed under the MIT License
+
+OpenCV
+https://github.com/opencv/opencv
+Copyright 2000-2025 OpenCV Foundation
+Licensed under the Apache License, Version 2.0
+
+pytorch
+https://github.com/pytorch/pytorch
+Copyright (c) 2016- Meta Platforms, Inc. and the PyTorch Foundation.
+Licensed under the BSD 3-Clause License
+
+rf-detr
+https://github.com/roboflow/rf-detr
+Copyright 2025 Roboflow, Inc.
+Licensed under the Apache License, Version 2.0
+
+tesserocr
+https://github.com/sirfz/tesserocr
+Copyright (c) 2015 Fayez Zouheiry
+Licensed udner the MIT License
+
+torchcodec
+https://github.com/meta-pytorch/torchcodec
+Copyright 2024 Meta
+Licensed under the BSD 3-Clause License
+
+torchvision
+https://github.com/pytorch/vision
+Copyright (c) Soumith Chintala 2016
+Licensed under the BSD 3-Clause License

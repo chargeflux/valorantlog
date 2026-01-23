@@ -1,7 +1,7 @@
 [project]
 name = "valorantlog"
 version = "0.1.0"
-description = "Create action log based on Valorant gameplay"
+description = "Create an action log based on Valorant Esports VODs"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -45,3 +45,6 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = "src"
+
+[project.scripts]
+valorantlog = "valorantlog.cli:main"
