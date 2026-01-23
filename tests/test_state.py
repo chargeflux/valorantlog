@@ -1,8 +1,10 @@
+from dataclasses import fields
 from typing import List, Optional
 import numpy as np
 import pytest
 import torch
 from valorantlog.detector import (
+    DETECTION_LABEL_TO_ID,
     Detection,
     DetectionLabel,
     Xyxy,
@@ -10,7 +12,9 @@ from valorantlog.detector import (
 from valorantlog.ocr import OCRHint
 from valorantlog.state import (
     DecayField,
+    GameState,
     GameStateExtractor,
+    Observation,
     ThresholdField,
 )
 
@@ -139,3 +143,67 @@ def test_decayfield_update():
     assert fl.update("5") == "3"
     # unlocked
     assert fl.update("5") == "5"
+
+
+def test_gamestate_columns():
+    assert GameState.columns() == [field.name for field in fields(GameState)]
+
+
+def test_gamestate_to_row():
+    gs = GameState.from_ocr_data(
+        {
+            DetectionLabel.ROUND: Observation(
+                "ROUND 1",
+                Detection(
+                    np.zeros(4, dtype=np.float32),
+                    0,
+                    DETECTION_LABEL_TO_ID[DetectionLabel.ROUND],
+                    DetectionLabel.ROUND,
+                ),
+                None,
+            )
+        }
+    )
+    assert gs.to_row() == ["1", "-1.0", "", "-1", "", "-1", "False"]
+
+
+def test_gamestate_to_row_keyed():
+    gs = GameState.from_ocr_data(
+        {
+            DetectionLabel.ROUND: Observation(
+                "ROUND 1",
+                Detection(
+                    np.zeros(4, dtype=np.float32),
+                    0,
+                    DETECTION_LABEL_TO_ID[DetectionLabel.ROUND],
+                    DetectionLabel.ROUND,
+                ),
+                None,
+            )
+        }
+    )
+    assert gs.to_row(True) == [
+        f"{k}={v}"
+        for k, v in zip(gs.columns(), ["1", "-1.0", "", "-1", "", "-1", "False"])
+    ]
+
+
+def test_gamestate_to_dict():
+    gs = GameState.from_ocr_data(
+        {
+            DetectionLabel.ROUND: Observation(
+                "ROUND 1",
+                Detection(
+                    np.zeros(4, dtype=np.float32),
+                    0,
+                    DETECTION_LABEL_TO_ID[DetectionLabel.ROUND],
+                    DetectionLabel.ROUND,
+                ),
+                None,
+            )
+        }
+    )
+
+    assert gs.to_dict() == {
+        k: v for k, v in zip(gs.columns(), ["1", "-1.0", "", "-1", "", "-1", "False"])
+    }

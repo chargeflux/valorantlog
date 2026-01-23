@@ -1,10 +1,11 @@
 from dataclasses import dataclass, fields
 from datetime import datetime, timedelta
+import json
 import logging
 import os
 from pathlib import Path
 import re
-from typing import Optional, Protocol, Tuple, Type, TypeVar
+from typing import List, Optional, Protocol, Tuple, Type, TypeVar
 
 from PIL import Image
 import numpy as np
@@ -220,17 +221,29 @@ class GameState:
             spike=Spike.from_observation(extract_data(DetectionLabel.SPIKE)),
         )
 
-    def __str__(self) -> str:
+    @classmethod
+    def columns(cls) -> List[str]:
+        return [field.name for field in fields(cls)]
+
+    def to_row(self, keyed: bool = False) -> List[str]:
         res = []
         for field in fields(self):
             obs = getattr(self, field.name)
 
             if hasattr(obs, "value"):
-                res.append(f"{field.name} {obs.value}")
+                value = obs.value
             else:
-                res.append(f"{field.name} {obs.is_valid()}")
+                value = obs.is_valid()
 
-        return "\t".join(res)
+            cell = f"{field.name}={value}" if keyed else str(value)
+            res.append(cell)
+        return res
+
+    def to_dict(self) -> dict[str, str]:
+        return {name: value for name, value in zip(self.columns(), self.to_row())}
+
+    def __str__(self) -> str:
+        return "\t".join(self.to_row(True))
 
     def save_img(self, dir: str):
         os.makedirs(dir, exist_ok=True)
