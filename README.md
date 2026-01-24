@@ -4,8 +4,15 @@
 
 ## Getting Started
 
+### Initialize environment
 ```shell
-uv run python src/valorantlog/cli.py -m <model path> -i <video file> [-o tsv,csv,json]
+uv sync
+```
+
+### Usage
+
+```shell
+valorantlog -m <model path> -i <video file> [-o tsv,csv,json]
 ```
 
 The model can be found in [Releases](https://github.com/chargeflux/valorantlog/releases).
