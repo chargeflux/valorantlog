@@ -8,6 +8,8 @@
 uv run python src/valorantlog/cli.py -m <model path> -i <video file> [-o tsv,csv,json]
 ```
 
+The model can be found in [Releases](https://github.com/chargeflux/valorantlog/releases).
+
 ## Architecture
 
 `valorantlog` has 3 main parts: 
@@ -17,7 +19,7 @@ uv run python src/valorantlog/cli.py -m <model path> -i <video file> [-o tsv,csv
 2. Detector
     - [rf-detr](https://github.com/roboflow/rf-detr) (ONNX)
 3. OCR
-    - [tesseract](https://github.com/tesseract-ocr/tesseract)
+    - Tesseract
 
 The pipeline is modular so each component can be swapped out, provided the protocol defining each stage is satisfied.
 
@@ -26,3 +28,4 @@ The pipeline is modular so each component can be swapped out, provided the proto
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
 
 Third-party dependencies and their licenses are listed in [NOTICE](./NOTICE).
+
