@@ -8,15 +8,15 @@ from valorantlog.cli import Config, OutputFormat, parse_args
     [
         (
             ["-m", "inference_model.onnx", "-i", "file"],
-            Config("inference_model.onnx", "file", OutputFormat.TSV),
+            Config("inference_model.onnx", "file", OutputFormat.TSV, "cuda"),
         ),
         (
             ["-m", "inference_model.onnx", "-i", "file"],
-            Config("inference_model.onnx", "file", OutputFormat.TSV),
+            Config("inference_model.onnx", "file", OutputFormat.TSV, "cuda"),
         ),
         (
             ["-m", "inference_model.onnx", "-i", "file", "--output", "csv"],
-            Config("inference_model.onnx", "file", OutputFormat.CSV),
+            Config("inference_model.onnx", "file", OutputFormat.CSV, "cuda"),
         ),
         (
             [
@@ -27,7 +27,11 @@ from valorantlog.cli import Config, OutputFormat, parse_args
                 "--output",
                 "json",
             ],
-            Config("inference_model.onnx", "file", OutputFormat.JSON),
+            Config("inference_model.onnx", "file", OutputFormat.JSON, "cuda"),
+        ),
+        (
+            ["-m", "inference_model.onnx", "-i", "file", "--device", "cpu"],
+            Config("inference_model.onnx", "file", OutputFormat.TSV, "cpu"),
         ),
     ],
 )

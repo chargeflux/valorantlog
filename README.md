@@ -6,7 +6,7 @@
 
 ### Initialize environment
 ```shell
-uv sync
+uv sync --extra cu128
 ```
 
 ### Usage

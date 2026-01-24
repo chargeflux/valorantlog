@@ -11,6 +11,8 @@ from valorantlog.log import configure_logging
 from valorantlog.ocr import TesseractOCR
 from valorantlog.state import GameState, GameStateExtractor
 
+import torch
+
 
 class OutputFormat(Enum):
     TSV = "tsv"
@@ -32,6 +34,7 @@ class Config:
     model_path: str
     input_file: str
     output_format: OutputFormat
+    device: str
 
     @classmethod
     def from_args(cls, parsed_args: Namespace) -> "Config":
@@ -39,6 +42,7 @@ class Config:
             parsed_args.model_path,
             parsed_args.input_file,
             OutputFormat(parsed_args.output),
+            parsed_args.device,
         )
 
 
@@ -55,7 +59,12 @@ def parse_args(args) -> Config:
         choices=[f.value for f in OutputFormat],
         help=f"Format output text: {[f.value for f in OutputFormat]}",
     )
-
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda" if torch.cuda.is_available() else "cpu",
+        help="Device to run on (cuda or cpu)",
+    )
     parsed = parser.parse_args(args)
 
     return Config.from_args(parsed)
@@ -69,7 +78,16 @@ def main():
 
     model = Rfdetr(config.model_path)
     ocr = TesseractOCR()
-    loader = TorchCodecLoader(config.input_file)
+    try:
+        loader = TorchCodecLoader(config.input_file, device=config.device)
+    except RuntimeError as e:
+        if "Unsupported device: cuda" in str(e):
+            logging.error(
+                "CUDA is not available. Check if CPU-only versions of torch dependencies were installed"
+            )
+            return
+        raise e
+
     extractor = GameStateExtractor(ocr, model)
     delimiter = config.output_format.delimiter()
     is_tabular = config.output_format != OutputFormat.JSON
@@ -78,6 +96,9 @@ def main():
         print(delimiter.join(GameState.columns()))
 
     smoother = None
+    logging.info(
+        f"Analyzing {config.input_file} with model {config.model_path} ({config.device})"
+    )
     for frame in loader:
         ds, smoother = extractor.extract_smooth(frame, smoother)
         if is_tabular:
