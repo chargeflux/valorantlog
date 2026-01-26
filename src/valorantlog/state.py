@@ -1,6 +1,5 @@
 from dataclasses import dataclass, fields
 from datetime import datetime, timedelta
-import json
 import logging
 import os
 from pathlib import Path
@@ -12,6 +11,7 @@ import numpy as np
 import torch
 
 from valorantlog.detector import Detection, DetectionLabel, Detector, Xyxy
+from valorantlog.log import TRACE
 from valorantlog.ocr import OCR, OCRHint
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,8 @@ class Round(Observation):
         if match:
             self.text = match.group(1)
         else:
-            logger.debug(f"Failed to parse round from {self.text}")
+            if self.text:
+                logger.debug(f"Failed to parse round from {self.text}")
             self.text = "0"
 
     def is_valid(self) -> bool:
@@ -92,7 +93,8 @@ class Timer(Observation):
                     ).total_seconds()
                 )
             else:
-                logger.debug(f"Failed to parse time from {self.text}")
+                if self.text:
+                    logger.debug(f"Failed to parse time from {self.text}")
                 self.text = "-1"
         except ValueError:
             self.text = "-1"
@@ -124,7 +126,8 @@ class Score(Observation):
             self.text = "-1"
             return
         if not self.text.isdigit():
-            logger.debug(f"Failed to parse score from {self.text}")
+            if self.text:
+                logger.debug(f"Failed to parse score from {self.text}")
             self.text = "-1"
 
     def is_valid(self) -> bool:
@@ -306,15 +309,19 @@ class GameStateExtractor:
         img = np.moveaxis(img, 0, -1).astype(np.uint8)
         for detection in detections:
             xyxy_int = detection.xyxy.astype(int)
-            logger.debug(f"Detected {detection.label_name} in xyxy region {xyxy_int}")
+            logger.log(
+                TRACE,
+                f"Detected {detection.label_name} in xyxy region {xyxy_int}",
+            )
             clipped = self._clip_xyxy(img.shape[0], img.shape[1], xyxy_int)
             if clipped:
-                logger.debug(f"Clipped boundaries {xyxy_int}")
+                logger.log(TRACE, f"Clipped boundaries {xyxy_int}")
             x_min, y_min, x_max, y_max = xyxy_int
             cropped_image = img[y_min:y_max, x_min:x_max]
             hint = self._get_ocr_hint(detection.label_name)
-            logger.debug(
-                f"Using OCR hints '{hint.name}' for label {detection.label_name}"
+            logger.log(
+                TRACE,
+                f"Using OCR hints '{hint.name}' for label {detection.label_name}",
             )
             text = self.ocr.read(cropped_image, hint)
             data[detection.label_name] = Observation(
@@ -346,6 +353,9 @@ class GameStateExtractor:
                 continue
             updated = smoother.update(field.name, obs.text)
             if obs.text != updated:
-                logger.debug(f"Updated {obs.text} to {updated} for {field.name}")
+                logger.log(
+                    TRACE,
+                    f"Updated {obs.text} to {updated} for {field.name}",
+                )
                 obs.text = updated
         return (gs, smoother)

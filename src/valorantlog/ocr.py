@@ -4,6 +4,8 @@ from typing import Protocol
 import numpy as np
 import tesserocr
 
+from valorantlog.log import TRACE
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,7 +37,7 @@ class TesseractOCR:
         )
 
     def _to_text(self, image: np.ndarray, psm: tesserocr.PSM) -> str:
-        logger.debug(f"Running tesseract with psm {psm}")
+        logger.log(TRACE, f"Running tesseract with psm {psm}")
         self._set_img_bytes(image)
         self.api.SetPageSegMode(psm)
         text = self.api.GetUTF8Text().strip()

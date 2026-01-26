@@ -6,13 +6,13 @@
 
 ### Initialize environment
 ```shell
-uv sync --extra cu128
+uv sync --extra <cu128|cpu>
 ```
 
 ### Usage
 
 ```shell
-valorantlog -m <model path> -i <video file> [-o tsv,csv,json]
+valorantlog -m <model path> -i <video file> [-o tsv,csv,json] [--device cuda,cpu]
 ```
 
 The model can be found in [Releases](https://github.com/chargeflux/valorantlog/releases).
