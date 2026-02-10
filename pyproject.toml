@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.4.0",
     "onnxruntime-gpu>=1.23.2",
-    "opencv-python>=4.11.0.86",
+    "opencv-python-headless>=4.11.0.86",
     "tesserocr>=2.9.2",
 ]
 
