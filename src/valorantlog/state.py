@@ -16,7 +16,7 @@ from valorantlog.ocr import OCR, OCRHint
 
 logger = logging.getLogger(__name__)
 
-ROUND_PATTERN = re.compile(r"^ROUND\s*(\d+)$")
+ROUND_PATTERN = re.compile(r"^ROUND\s*(\d+)$", re.IGNORECASE)
 ObservationLike = TypeVar("ObservationLike", bound="Observation")
 
 

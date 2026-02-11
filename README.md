@@ -12,7 +12,7 @@ uv sync --extra <cu128|cpu>
 ### Usage
 
 ```shell
-valorantlog -m <model path> -i <video file> [-o tsv,csv,json] [--device cuda,cpu]
+valorantlog -m <model path> -i <video file> [-o tsv,csv,json] [--device cuda,cpu] [--ocr tesseract,easyocr]
 ```
 
 The model can be found in [Releases](https://github.com/chargeflux/valorantlog/releases).
@@ -27,6 +27,7 @@ The model can be found in [Releases](https://github.com/chargeflux/valorantlog/r
     - [rf-detr](https://github.com/roboflow/rf-detr) (ONNX)
 3. OCR
     - Tesseract
+    - EasyOCR
 
 The pipeline is modular so each component can be swapped out, provided the protocol defining each stage is satisfied.
 

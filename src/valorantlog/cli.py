@@ -8,7 +8,7 @@ import sys
 from valorantlog.detector import Rfdetr
 from valorantlog.loader import TorchCodecLoader
 from valorantlog.log import configure_logging
-from valorantlog.ocr import TesseractOCR
+from valorantlog.ocr import EasyOCR, TesseractOCR
 from valorantlog.state import GameState, GameStateExtractor
 
 import torch
@@ -29,12 +29,18 @@ class OutputFormat(Enum):
                 return ""
 
 
+class OCRType(Enum):
+    TESSERACT = "tesseract"
+    EASYOCR = "easyocr"
+
+
 @dataclass
 class Config:
     model_path: str
     input_file: str
     output_format: OutputFormat
     device: str
+    ocr: OCRType
 
     @classmethod
     def from_args(cls, parsed_args: Namespace) -> "Config":
@@ -43,7 +49,11 @@ class Config:
             parsed_args.input_file,
             OutputFormat(parsed_args.output),
             parsed_args.device,
+            OCRType(parsed_args.ocr),
         )
+
+    def use_gpu(self) -> bool:
+        return self.device == "cuda"
 
 
 def parse_args(args) -> Config:
@@ -65,6 +75,12 @@ def parse_args(args) -> Config:
         default="cuda" if torch.cuda.is_available() else "cpu",
         help="Device to run on (cuda or cpu)",
     )
+    parser.add_argument(
+        "--ocr",
+        default=OCRType.TESSERACT,
+        choices=[t.value for t in OCRType],
+        help=f"OCR Type: {[t.value for t in OCRType]}",
+    )
     parsed = parser.parse_args(args)
 
     return Config.from_args(parsed)
@@ -77,7 +93,9 @@ def main():
     logging.debug(f"Parsed args: {config}")
 
     model = Rfdetr(config.model_path)
-    ocr = TesseractOCR()
+    ocr = (
+        TesseractOCR() if config.ocr == OCRType.TESSERACT else EasyOCR(config.use_gpu())
+    )
     try:
         loader = TorchCodecLoader(config.input_file, device=config.device)
     except RuntimeError as e:
@@ -97,7 +115,7 @@ def main():
 
     smoother = None
     logging.info(
-        f"Analyzing {config.input_file} with model {config.model_path} ({config.device})"
+        f"Analyzing {config.input_file} with model {config.model_path} ({config.device}) and using {config.ocr.value} as OCR"
     )
     for frame in loader:
         ds, smoother = extractor.extract_smooth(frame, smoother)

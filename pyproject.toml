@@ -13,11 +13,13 @@ dependencies = [
 
 [project.optional-dependencies]
 cpu = [
+    "easyocr>=1.7.2",
     "torch>=2.9.1",
     "torchcodec>=0.9.1",
     "torchvision>=0.24.1",
 ]
 cu128 = [
+    "easyocr>=1.7.2",
     "torch>=2.9.1",
     "torchcodec>=0.9.1",
     "torchvision>=0.24.1",

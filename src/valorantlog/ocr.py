@@ -1,6 +1,7 @@
 from enum import IntFlag, auto
 import logging
 from typing import Protocol
+import easyocr
 import numpy as np
 import tesserocr
 
@@ -56,3 +57,12 @@ class TesseractOCR:
 
     def __del__(self):
         self.api.End()
+
+
+class EasyOCR:
+    def __init__(self, gpu: bool):
+        self.reader = easyocr.Reader(["en"], gpu)
+        self.cnt = 0
+
+    def read(self, image: np.ndarray, hint: OCRHint) -> str:
+        return " ".join(self.reader.readtext(image, detail=0))  # pyright: ignore[reportArgumentType, reportCallIssue]

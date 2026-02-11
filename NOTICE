@@ -2,6 +2,11 @@ This project is licensed under the MIT License.
 
 This project depends on the following components:
 
+EasyOCR
+https://github.com/JaidedAI/EasyOCR
+Copyright 2020 Jaded AI
+Licensed under the Apache License, Version 2.0
+
 FFmpeg
 https://www.ffmpeg.org
 Copyright 2000‑2025 the FFmpeg developers
